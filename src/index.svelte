@@ -16,7 +16,7 @@
   });
 </script>
 
-<!-- <svelte:options tag="my-element" /> -->
+<svelte:options tag="googly-eyes" />
 
 <svg
   version="1.1"
