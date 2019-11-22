@@ -1,3 +1,23 @@
+<script context="module">
+  // Stuff here runs once even if component is invoked many times.
+</script>
+
+<script>
+  import { onMount } from "svelte";
+
+  export let onMouseMove = function(args) {
+    console.log(...args);
+  };
+  onMount(function handleMount() {
+    let a = window.addEventListener("mousemove", onMouseMove);
+    return function handleUnmount() {
+      window.addEventListener(a);
+    };
+  });
+</script>
+
+<!-- <svelte:options tag="my-element" /> -->
+
 <svg
   version="1.1"
   id="Layer_1"

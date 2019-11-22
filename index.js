@@ -1,7 +1,7 @@
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
     typeof define === 'function' && define.amd ? define(factory) :
-    (global = global || self, global.SvelteComponent = factory());
+    (global = global || self, global.GooglyEyes = factory());
 }(this, (function () { 'use strict';
 
     function noop() { }
@@ -46,6 +46,14 @@
     let current_component;
     function set_current_component(component) {
         current_component = component;
+    }
+    function get_current_component() {
+        if (!current_component)
+            throw new Error(`Function called outside component initialization`);
+        return current_component;
+    }
+    function onMount(fn) {
+        get_current_component().$$.on_mount.push(fn);
     }
 
     const dirty_components = [];
@@ -267,10 +275,30 @@
     	};
     }
 
+    function instance($$self, $$props, $$invalidate) {
+    	let { onMouseMove = function (args) {
+    		console.log(...args);
+    	} } = $$props;
+
+    	onMount(function handleMount() {
+    		let a = window.addEventListener("mousemove", onMouseMove);
+
+    		return function handleUnmount() {
+    			window.addEventListener(a);
+    		};
+    	});
+
+    	$$self.$set = $$props => {
+    		if ("onMouseMove" in $$props) $$invalidate("onMouseMove", onMouseMove = $$props.onMouseMove);
+    	};
+
+    	return { onMouseMove };
+    }
+
     class Src extends SvelteComponent {
     	constructor(options) {
     		super();
-    		init(this, options, null, create_fragment, safe_not_equal, {});
+    		init(this, options, instance, create_fragment, safe_not_equal, { onMouseMove: 0 });
     	}
     }
 
