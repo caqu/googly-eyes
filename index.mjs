@@ -41,14 +41,6 @@ let current_component;
 function set_current_component(component) {
     current_component = component;
 }
-function get_current_component() {
-    if (!current_component)
-        throw new Error(`Function called outside component initialization`);
-    return current_component;
-}
-function onMount(fn) {
-    get_current_component().$$.on_mount.push(fn);
-}
 
 const dirty_components = [];
 const binding_callbacks = [];
@@ -248,6 +240,9 @@ function create_fragment(ctx) {
 	let circle0;
 	let circle1;
 	let circle2;
+	let circle3;
+	let svg_width_value;
+	let svg_height_value;
 
 	return {
 		c() {
@@ -256,30 +251,40 @@ function create_fragment(ctx) {
 			circle0 = svg_element("circle");
 			circle1 = svg_element("circle");
 			circle2 = svg_element("circle");
+			circle3 = svg_element("circle");
 			this.c = noop;
 			attr(circle0, "fill", "white");
 			attr(circle0, "cx", "48");
 			attr(circle0, "cy", "48");
 			attr(circle0, "r", "46");
 			attr(mask, "id", "myMask");
-			attr(circle1, "fill", "#FFFF80");
+			attr(circle1, "class", "ball");
+			attr(circle1, "fill", "#FFFFFF");
 			attr(circle1, "stroke", "#000000");
 			attr(circle1, "stroke-miterlimit", "10");
 			attr(circle1, "cx", "48");
 			attr(circle1, "cy", "48");
 			attr(circle1, "r", "46");
+			attr(circle2, "class", "iris");
+			attr(circle2, "fill", "#487908");
 			attr(circle2, "cx", ctx.pupil_x);
 			attr(circle2, "cy", ctx.pupil_y);
-			attr(circle2, "r", "24");
+			attr(circle2, "r", "28");
 			attr(circle2, "mask", "url(#myMask)");
+			attr(circle3, "class", "pupil");
+			attr(circle3, "fill", "#000000");
+			attr(circle3, "cx", ctx.pupil_x);
+			attr(circle3, "cy", ctx.pupil_y);
+			attr(circle3, "r", "24");
+			attr(circle3, "mask", "url(#myMask)");
 			attr(svg, "y", "0px");
 			attr(svg, "version", "1.1");
 			attr(svg, "xmlns", "http://www.w3.org/2000/svg");
 			attr(svg, "xmlns:xlink", "http://www.w3.org/1999/xlink");
 			attr(svg, "x", "0px");
 			attr(svg, "id", "Layer_1");
-			attr(svg, "width", "96px");
-			attr(svg, "height", "96px");
+			attr(svg, "width", svg_width_value = "" + (ctx.width + "px"));
+			attr(svg, "height", svg_height_value = "" + (ctx.height + "px"));
 			attr(svg, "viewBox", "0 0 96 96");
 			attr(svg, "enable-background", "new 0 0 96 96");
 			attr(svg, "xml:space", "preserve");
@@ -290,6 +295,7 @@ function create_fragment(ctx) {
 			append(mask, circle0);
 			append(svg, circle1);
 			append(svg, circle2);
+			append(svg, circle3);
 		},
 		p(changed, ctx) {
 			if (changed.pupil_x) {
@@ -298,6 +304,22 @@ function create_fragment(ctx) {
 
 			if (changed.pupil_y) {
 				attr(circle2, "cy", ctx.pupil_y);
+			}
+
+			if (changed.pupil_x) {
+				attr(circle3, "cx", ctx.pupil_x);
+			}
+
+			if (changed.pupil_y) {
+				attr(circle3, "cy", ctx.pupil_y);
+			}
+
+			if (changed.width && svg_width_value !== (svg_width_value = "" + (ctx.width + "px"))) {
+				attr(svg, "width", svg_width_value);
+			}
+
+			if (changed.height && svg_height_value !== (svg_height_value = "" + (ctx.height + "px"))) {
+				attr(svg, "height", svg_height_value);
 			}
 		},
 		i: noop,
@@ -308,56 +330,47 @@ function create_fragment(ctx) {
 	};
 }
 
-const pupil_x_min = 20;
-const pupil_x_max = 70;
-const pupil_y_min = 20;
+const margin = 20;
 
 function instance($$self, $$props, $$invalidate) {
-	let pupil_x = 36;
+	let { x = 0.5 } = $$props;
+	let { y = 0.5 } = $$props;
+	let { width = 96 } = $$props;
+	let { height = 96 } = $$props;
+	const pupil_x_min = margin;
+	const pupil_x_max = width - margin;
+	const pupil_y_min = margin;
+	const pupil_y_max = height - margin;
 	const pupil_x_delta = pupil_x_max - pupil_x_min;
-	let pupil_y = 36;
-	const pupil_y_delta = pupil_x_max - pupil_x_min;
-
-	let { onTouchMove = function (event) {
-		set_pupil(event.changedTouches[0].clientX, event.changedTouches[0].clientY);
-	} } = $$props;
-
-	let { onMouseMove = function (event) {
-		set_pupil(event.clientX, event.clientY);
-	} } = $$props;
-
-	function set_pupil(x, y) {
-		$$invalidate("pupil_x", pupil_x = pupil_x_min + x / window.innerWidth * pupil_x_delta);
-		$$invalidate("pupil_y", pupil_y = pupil_y_min + y / window.innerHeight * pupil_y_delta);
-	}
-
-	onMount(function handleMount() {
-		let a = window.addEventListener("touchmove", onTouchMove);
-		let b = window.addEventListener("mousemove", onMouseMove);
-
-		return function handleUnmount() {
-			window.addEventListener(a);
-			window.addEventListener(b);
-		};
-	});
+	const pupil_y_delta = pupil_y_max - pupil_y_min;
 
 	$$self.$set = $$props => {
-		if ("onTouchMove" in $$props) $$invalidate("onTouchMove", onTouchMove = $$props.onTouchMove);
-		if ("onMouseMove" in $$props) $$invalidate("onMouseMove", onMouseMove = $$props.onMouseMove);
+		if ("x" in $$props) $$invalidate("x", x = $$props.x);
+		if ("y" in $$props) $$invalidate("y", y = $$props.y);
+		if ("width" in $$props) $$invalidate("width", width = $$props.width);
+		if ("height" in $$props) $$invalidate("height", height = $$props.height);
 	};
 
-	return {
-		pupil_x,
-		pupil_y,
-		onTouchMove,
-		onMouseMove
+	let pupil_x;
+	let pupil_y;
+
+	$$self.$$.update = (changed = { x: 1, y: 1 }) => {
+		if (changed.x) {
+			 $$invalidate("pupil_x", pupil_x = pupil_x_min + x * pupil_x_delta);
+		}
+
+		if (changed.y) {
+			 $$invalidate("pupil_y", pupil_y = pupil_y_min + y * pupil_y_delta);
+		}
 	};
+
+	return { x, y, width, height, pupil_x, pupil_y };
 }
 
 class Src extends SvelteElement {
 	constructor(options) {
 		super();
-		init(this, { target: this.shadowRoot }, instance, create_fragment, safe_not_equal, { onTouchMove: 0, onMouseMove: 0 });
+		init(this, { target: this.shadowRoot }, instance, create_fragment, safe_not_equal, { x: 0, y: 0, width: 0, height: 0 });
 
 		if (options) {
 			if (options.target) {
@@ -372,24 +385,42 @@ class Src extends SvelteElement {
 	}
 
 	static get observedAttributes() {
-		return ["onTouchMove", "onMouseMove"];
+		return ["x", "y", "width", "height"];
 	}
 
-	get onTouchMove() {
-		return this.$$.ctx.onTouchMove;
+	get x() {
+		return this.$$.ctx.x;
 	}
 
-	set onTouchMove(onTouchMove) {
-		this.$set({ onTouchMove });
+	set x(x) {
+		this.$set({ x });
 		flush();
 	}
 
-	get onMouseMove() {
-		return this.$$.ctx.onMouseMove;
+	get y() {
+		return this.$$.ctx.y;
 	}
 
-	set onMouseMove(onMouseMove) {
-		this.$set({ onMouseMove });
+	set y(y) {
+		this.$set({ y });
+		flush();
+	}
+
+	get width() {
+		return this.$$.ctx.width;
+	}
+
+	set width(width) {
+		this.$set({ width });
+		flush();
+	}
+
+	get height() {
+		return this.$$.ctx.height;
+	}
+
+	set height(height) {
+		this.$set({ height });
 		flush();
 	}
 }
