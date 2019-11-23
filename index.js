@@ -250,42 +250,62 @@
 
     function create_fragment(ctx) {
     	let svg;
+    	let mask;
     	let circle0;
     	let circle1;
+    	let circle2;
 
     	return {
     		c() {
     			svg = svg_element("svg");
+    			mask = svg_element("mask");
     			circle0 = svg_element("circle");
     			circle1 = svg_element("circle");
+    			circle2 = svg_element("circle");
     			this.c = noop;
-    			attr(circle0, "fill", "#FFFFFF");
-    			attr(circle0, "stroke", "#000000");
-    			attr(circle0, "stroke-miterlimit", "10");
-    			attr(circle0, "cx", "47.626");
-    			attr(circle0, "cy", "47.626");
-    			attr(circle0, "r", "47.126");
-    			attr(circle1, "cx", "29.235");
-    			attr(circle1, "cy", "36.132");
-    			attr(circle1, "r", "18.391");
+    			attr(circle0, "fill", "white");
+    			attr(circle0, "cx", "48");
+    			attr(circle0, "cy", "48");
+    			attr(circle0, "r", "46");
+    			attr(mask, "id", "myMask");
+    			attr(circle1, "fill", "#FFFF80");
+    			attr(circle1, "stroke", "#000000");
+    			attr(circle1, "stroke-miterlimit", "10");
+    			attr(circle1, "cx", "48");
+    			attr(circle1, "cy", "48");
+    			attr(circle1, "r", "46");
+    			attr(circle2, "cx", ctx.pupil_x);
+    			attr(circle2, "cy", ctx.pupil_y);
+    			attr(circle2, "r", "24");
+    			attr(circle2, "mask", "url(#myMask)");
     			attr(svg, "y", "0px");
     			attr(svg, "version", "1.1");
     			attr(svg, "xmlns", "http://www.w3.org/2000/svg");
     			attr(svg, "xmlns:xlink", "http://www.w3.org/1999/xlink");
     			attr(svg, "x", "0px");
     			attr(svg, "id", "Layer_1");
-    			attr(svg, "width", "95.253px");
-    			attr(svg, "height", "95.253px");
-    			attr(svg, "viewBox", "0 0 95.253 95.253");
-    			attr(svg, "enable-background", "new 0 0 95.253 95.253");
+    			attr(svg, "width", "96px");
+    			attr(svg, "height", "96px");
+    			attr(svg, "viewBox", "0 0 96 96");
+    			attr(svg, "enable-background", "new 0 0 96 96");
     			attr(svg, "xml:space", "preserve");
     		},
     		m(target, anchor) {
     			insert(target, svg, anchor);
-    			append(svg, circle0);
+    			append(svg, mask);
+    			append(mask, circle0);
     			append(svg, circle1);
+    			append(svg, circle2);
     		},
-    		p: noop,
+    		p(changed, ctx) {
+    			if (changed.pupil_x) {
+    				attr(circle2, "cx", ctx.pupil_x);
+    			}
+
+    			if (changed.pupil_y) {
+    				attr(circle2, "cy", ctx.pupil_y);
+    			}
+    		},
     		i: noop,
     		o: noop,
     		d(detaching) {
@@ -294,30 +314,56 @@
     	};
     }
 
+    const pupil_x_min = 20;
+    const pupil_x_max = 70;
+    const pupil_y_min = 20;
+
     function instance($$self, $$props, $$invalidate) {
-    	let { onMouseMove = function (args) {
-    		console.log(...args);
+    	let pupil_x = 36;
+    	const pupil_x_delta = pupil_x_max - pupil_x_min;
+    	let pupil_y = 36;
+    	const pupil_y_delta = pupil_x_max - pupil_x_min;
+
+    	let { onTouchMove = function (event) {
+    		set_pupil(event.changedTouches[0].clientX, event.changedTouches[0].clientY);
     	} } = $$props;
 
+    	let { onMouseMove = function (event) {
+    		set_pupil(event.clientX, event.clientY);
+    	} } = $$props;
+
+    	function set_pupil(x, y) {
+    		$$invalidate("pupil_x", pupil_x = pupil_x_min + x / window.innerWidth * pupil_x_delta);
+    		$$invalidate("pupil_y", pupil_y = pupil_y_min + y / window.innerHeight * pupil_y_delta);
+    	}
+
     	onMount(function handleMount() {
-    		let a = window.addEventListener("mousemove", onMouseMove);
+    		let a = window.addEventListener("touchmove", onTouchMove);
+    		let b = window.addEventListener("mousemove", onMouseMove);
 
     		return function handleUnmount() {
     			window.addEventListener(a);
+    			window.addEventListener(b);
     		};
     	});
 
     	$$self.$set = $$props => {
+    		if ("onTouchMove" in $$props) $$invalidate("onTouchMove", onTouchMove = $$props.onTouchMove);
     		if ("onMouseMove" in $$props) $$invalidate("onMouseMove", onMouseMove = $$props.onMouseMove);
     	};
 
-    	return { onMouseMove };
+    	return {
+    		pupil_x,
+    		pupil_y,
+    		onTouchMove,
+    		onMouseMove
+    	};
     }
 
     class Src extends SvelteElement {
     	constructor(options) {
     		super();
-    		init(this, { target: this.shadowRoot }, instance, create_fragment, safe_not_equal, { onMouseMove: 0 });
+    		init(this, { target: this.shadowRoot }, instance, create_fragment, safe_not_equal, { onTouchMove: 0, onMouseMove: 0 });
 
     		if (options) {
     			if (options.target) {
@@ -332,7 +378,16 @@
     	}
 
     	static get observedAttributes() {
-    		return ["onMouseMove"];
+    		return ["onTouchMove", "onMouseMove"];
+    	}
+
+    	get onTouchMove() {
+    		return this.$$.ctx.onTouchMove;
+    	}
+
+    	set onTouchMove(onTouchMove) {
+    		this.$set({ onTouchMove });
+    		flush();
     	}
 
     	get onMouseMove() {
