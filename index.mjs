@@ -259,12 +259,13 @@ function create_fragment(ctx) {
 			attr(circle0, "r", "46");
 			attr(mask, "id", "myMask");
 			attr(circle1, "class", "ball");
-			attr(circle1, "fill", "#FFFFFF");
+			attr(circle1, "fill", "#FFFFF0");
 			attr(circle1, "stroke", "#000000");
 			attr(circle1, "stroke-miterlimit", "10");
 			attr(circle1, "cx", "48");
 			attr(circle1, "cy", "48");
 			attr(circle1, "r", "46");
+			attr(circle1, "stroke-width", "3");
 			attr(circle2, "class", "iris");
 			attr(circle2, "fill", "#487908");
 			attr(circle2, "cx", ctx.pupil_x);
@@ -277,14 +278,13 @@ function create_fragment(ctx) {
 			attr(circle3, "cy", ctx.pupil_y);
 			attr(circle3, "r", "24");
 			attr(circle3, "mask", "url(#myMask)");
-			attr(svg, "y", "0px");
 			attr(svg, "version", "1.1");
 			attr(svg, "xmlns", "http://www.w3.org/2000/svg");
 			attr(svg, "xmlns:xlink", "http://www.w3.org/1999/xlink");
 			attr(svg, "x", "0px");
-			attr(svg, "id", "Layer_1");
-			attr(svg, "width", svg_width_value = "" + (ctx.width + "px"));
-			attr(svg, "height", svg_height_value = "" + (ctx.height + "px"));
+			attr(svg, "y", "0px");
+			attr(svg, "width", svg_width_value = "" + (ctx.eye_width + "px"));
+			attr(svg, "height", svg_height_value = "" + (ctx.eye_height + "px"));
 			attr(svg, "viewBox", "0 0 96 96");
 			attr(svg, "enable-background", "new 0 0 96 96");
 			attr(svg, "xml:space", "preserve");
@@ -314,11 +314,11 @@ function create_fragment(ctx) {
 				attr(circle3, "cy", ctx.pupil_y);
 			}
 
-			if (changed.width && svg_width_value !== (svg_width_value = "" + (ctx.width + "px"))) {
+			if (changed.eye_width && svg_width_value !== (svg_width_value = "" + (ctx.eye_width + "px"))) {
 				attr(svg, "width", svg_width_value);
 			}
 
-			if (changed.height && svg_height_value !== (svg_height_value = "" + (ctx.height + "px"))) {
+			if (changed.eye_height && svg_height_value !== (svg_height_value = "" + (ctx.eye_height + "px"))) {
 				attr(svg, "height", svg_height_value);
 			}
 		},
@@ -336,13 +336,9 @@ function instance($$self, $$props, $$invalidate) {
 	let { x = 0.5 } = $$props;
 	let { y = 0.5 } = $$props;
 	let { width = 96 } = $$props;
-	let { height = 96 } = $$props;
-	const pupil_x_min = margin;
-	const pupil_x_max = width - margin;
-	const pupil_y_min = margin;
-	const pupil_y_max = height - margin;
-	const pupil_x_delta = pupil_x_max - pupil_x_min;
-	const pupil_y_delta = pupil_y_max - pupil_y_min;
+	let { height } = $$props;
+	const pupil_x_max = 96 - margin;
+	const pupil_y_max = 96 - margin;
 
 	$$self.$set = $$props => {
 		if ("x" in $$props) $$invalidate("x", x = $$props.x);
@@ -351,20 +347,54 @@ function instance($$self, $$props, $$invalidate) {
 		if ("height" in $$props) $$invalidate("height", height = $$props.height);
 	};
 
+	let eye_width;
+	let eye_height;
+	let pupil_x_min;
+	let pupil_y_min;
+	let pupil_x_delta;
+	let pupil_y_delta;
 	let pupil_x;
 	let pupil_y;
 
-	$$self.$$.update = (changed = { x: 1, y: 1 }) => {
-		if (changed.x) {
+	$$self.$$.update = (changed = { width: 1, height: 1, eye_width: 1, pupil_x_min: 1, pupil_y_min: 1, x: 1, pupil_x_delta: 1, y: 1, pupil_y_delta: 1 }) => {
+		if (changed.width || changed.height) {
+			 $$invalidate("eye_width", eye_width = width || height);
+		}
+
+		if (changed.height || changed.eye_width) {
+			 $$invalidate("eye_height", eye_height = height || eye_width);
+		}
+
+		if (changed.pupil_x_min) {
+			 $$invalidate("pupil_x_delta", pupil_x_delta = pupil_x_max - pupil_x_min);
+		}
+
+		if (changed.pupil_y_min) {
+			 $$invalidate("pupil_y_delta", pupil_y_delta = pupil_y_max - pupil_y_min);
+		}
+
+		if (changed.pupil_x_min || changed.x || changed.pupil_x_delta) {
 			 $$invalidate("pupil_x", pupil_x = pupil_x_min + x * pupil_x_delta);
 		}
 
-		if (changed.y) {
+		if (changed.pupil_y_min || changed.y || changed.pupil_y_delta) {
 			 $$invalidate("pupil_y", pupil_y = pupil_y_min + y * pupil_y_delta);
 		}
 	};
 
-	return { x, y, width, height, pupil_x, pupil_y };
+	 $$invalidate("pupil_x_min", pupil_x_min = margin);
+	 $$invalidate("pupil_y_min", pupil_y_min = margin);
+
+	return {
+		x,
+		y,
+		width,
+		height,
+		eye_width,
+		eye_height,
+		pupil_x,
+		pupil_y
+	};
 }
 
 class Src extends SvelteElement {
